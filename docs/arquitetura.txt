@@ -1,0 +1,33 @@
+projeto-sistemas-operacionais/
+│
+├── src/
+│   ├── orchestrator/
+│   │   ├── __init__.py
+│   │   ├── orchestrator.py
+│   │   ├── scheduler.py
+│   │   └── metrics.py
+│   │
+│   ├── servers/
+│   │   ├── __init__.py
+│   │   └── worker.py
+│   │
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── logger.py
+│   │
+│   └── main.py
+│
+├── tests/
+│   ├── test_scheduler.py
+│   ├── test_orchestrator.py
+│   └── test_worker.py
+│
+├── docs/
+│   ├── README.md
+│   ├── arquitetura.png
+│   ├── diagrama.drawio
+│   └── relatório.pdf
+│
+├── requirements.txt
+│
+└── run.sh
