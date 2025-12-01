@@ -1,4 +1,4 @@
-from orchestrator.scheduler import Scheduler
+from src.orchestrator.scheduler import Scheduler
 
 
 def test_rr_assigns_same_count():

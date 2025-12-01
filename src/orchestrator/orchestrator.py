@@ -1,10 +1,10 @@
-
 import multiprocessing as mp
 import time
-from orchestrator.scheduler import Scheduler
-from utils.logger import Logger
-from servers.worker import WorkerProcess
-from orchestrator.metrics import Metrics
+from src.orchestrator.scheduler import Scheduler
+from src.utils.logger import Logger
+from src.servers.worker import WorkerProcess
+from src.orchestrator.metrics import Metrics
+
 
 class Orchestrator:
     def __init__(self, servidores, policy="RR"):

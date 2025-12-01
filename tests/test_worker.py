@@ -1,6 +1,7 @@
 import multiprocessing as mp
 import time
-from servers.worker import WorkerProcess
+from src.servers.worker import WorkerProcess
+
 
 
 def test_worker_processes_task():

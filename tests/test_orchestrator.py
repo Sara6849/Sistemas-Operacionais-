@@ -1,4 +1,4 @@
-from orchestrator.orchestrator import Orchestrator
+from src.orchestrator.orchestrator import Orchestrator
 
 
 def test_orchestrator_creates_workers():

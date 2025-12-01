@@ -1,7 +1,7 @@
 import json
 import sys
 import time
-from orchestrator.orchestrator import Orchestrator
+from src.orchestrator.orchestrator import Orchestrator
 
 DEFAULT_INPUT = 'input.json'
 
@@ -17,3 +17,4 @@ if __name__ == '__main__':
     orch = Orchestrator(servidores, policy=policy)
     # preload tasks
     orch.start(requisicoes=requisicoes)
+
