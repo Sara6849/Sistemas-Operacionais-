@@ -1,11 +1,9 @@
 import time
-from collections import deque
 
 class Metrics:
     def __init__(self):
-        self._sent = {}        # task_id -> send_time
-        self._completed = []   # durations
-        self._last_report = time.time()
+        self._sent = {}
+        self._completed = []  # lista de (timestamp_conclusao, duration)
 
     def registrar_desenvio(self, task_id):
         self._sent[task_id] = time.time()
@@ -15,26 +13,24 @@ class Metrics:
         start = self._sent.pop(tid, None)
         if start is None:
             return
-        duration = time.time() - start
-        self._completed.append(duration)
+        end = time.time()
+        duration = end - start
+        self._completed.append((end, duration))
 
     def tempo_medio(self):
         if not self._completed:
             return 0.0
-        return sum(self._completed)/len(self._completed)
+        return sum(d for (_, d) in self._completed) / len(self._completed)
 
-    def throughput(self):
-        # tarefas por segundo (simples)
-        if not self._completed:
-            return 0.0
-        total = len(self._completed)
-        elapsed = max(1e-6, time.time() - self._last_report)
-        return total / elapsed
+    def throughput(self, window=10):
+        """throughput nos últimos 10 segundos"""
+        now = time.time()
+        count = sum(1 for (t, _) in self._completed if now - t <= window)
+        return count / window
 
     def summary(self):
         print('--- Resumo de métricas ---')
         print(f'Tarefas concluídas: {len(self._completed)}')
         print(f'Tempo médio de resposta: {self.tempo_medio():.2f}s')
-        print(f'Throughput (estimado): {len(self._completed)/(max(1e-6, time.time()-self._last_report)):.2f} tasks/s')
-        print('-------------------------')
-
+        print(f'Throughput (últimos 10s): {self.throughput():.2f} tasks/s')
+        print('--------------------------')

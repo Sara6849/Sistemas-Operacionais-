@@ -1,16 +1,33 @@
 {
-    "policy": "RR",
-    "servidores": [
-      {"id": 1, "capacidade": 3},
-      {"id": 2, "capacidade": 2},
-      {"id": 3, "capacidade": 1}
-    ],
-    "requisicoes": [
-      {"id": 101, "tipo": "visao_computacional", "prioridade": 1, "tempo_exec": 8},
-      {"id": 102, "tipo": "nlp", "prioridade": 3, "tempo_exec": 3},
-      {"id": 103, "tipo": "voz", "prioridade": 2, "tempo_exec": 5},
-      {"id": 104, "tipo": "visao_computacional", "prioridade": 2, "tempo_exec": 6},
-      {"id": 105, "tipo": "nlp", "prioridade": 1, "tempo_exec": 2}
-    ]
-  }
-  
+  "policy": "RR",
+  "servidores": [
+      { "id": 1, "capacidade": 3 },
+      { "id": 2, "capacidade": 2 },
+      { "id": 3, "capacidade": 1 },
+      { "id": 4, "capacidade": 4 },
+      { "id": 5, "capacidade": 2 },
+      { "id": 6, "capacidade": 3 }
+  ],
+  "requisicoes": [
+      { "id": 1, "tipo": "vc", "prioridade": 1, "tempo_exec": 2 },
+      { "id": 2, "tipo": "nlp", "prioridade": 2, "tempo_exec": 4 },
+      { "id": 3, "tipo": "voz", "prioridade": 1, "tempo_exec": 3 },
+      { "id": 4, "tipo": "vc", "prioridade": 3, "tempo_exec": 5 },
+      { "id": 5, "tipo": "nlp", "prioridade": 1, "tempo_exec": 1 },
+      { "id": 6, "tipo": "voz", "prioridade": 2, "tempo_exec": 2 },
+      { "id": 7, "tipo": "vc", "prioridade": 3, "tempo_exec": 4 },
+      { "id": 8, "tipo": "nlp", "prioridade": 2, "tempo_exec": 1 },
+      { "id": 9, "tipo": "voz", "prioridade": 1, "tempo_exec": 3 },
+      { "id": 10, "tipo": "vc", "prioridade": 1, "tempo_exec": 2 },
+      { "id": 11, "tipo": "nlp", "prioridade": 3, "tempo_exec": 5 },
+      { "id": 12, "tipo": "voz", "prioridade": 3, "tempo_exec": 4 },
+      { "id": 13, "tipo": "vc", "prioridade": 2, "tempo_exec": 3 },
+      { "id": 14, "tipo": "nlp", "prioridade": 1, "tempo_exec": 2 },
+      { "id": 15, "tipo": "voz", "prioridade": 2, "tempo_exec": 5 },
+      { "id": 16, "tipo": "vc", "prioridade": 1, "tempo_exec": 1 },
+      { "id": 17, "tipo": "nlp", "prioridade": 2, "tempo_exec": 4 },
+      { "id": 18, "tipo": "voz", "prioridade": 3, "tempo_exec": 3 },
+      { "id": 19, "tipo": "vc", "prioridade": 1, "tempo_exec": 1 },
+      { "id": 20, "tipo": "nlp", "prioridade": 2, "tempo_exec": 2 }
+  ]
+}

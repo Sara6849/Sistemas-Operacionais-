@@ -6,10 +6,11 @@ class Scheduler:
         self._rr_iter = None
 
     def escalar(self, tasks, workers):
-        # tasks: list of dict
-        # workers: list of proxies {'process','inbox','id','capacidade'}
+        # tasks: list de dicts
+        # workers: list de proxies {'process','inbox','id','capacidade'}
         if not tasks:
             return []
+
         if self.policy == 'RR':
             return self._round_robin(tasks, workers)
         elif self.policy == 'SJF':
@@ -19,32 +20,50 @@ class Scheduler:
         else:
             return self._round_robin(tasks, workers)
 
+    # ---------------------------
+    # ROUND ROBIN
+    # ---------------------------
     def _round_robin(self, tasks, workers):
         if self._rr_iter is None:
             self._rr_iter = itertools.cycle(workers)
+
         assigned = []
         for t in tasks:
             w = next(self._rr_iter)
             assigned.append((w, t))
         return assigned
 
+    # ---------------------------
+    # SHORTEST JOB FIRST (com desempate por ordem de chegada)
+    # ---------------------------
     def _sjf(self, tasks, workers):
-        tasks_sorted = sorted(tasks, key=lambda x: x.get('tempo_exec', 0))
+        # Ordena por tempo_exec e desempatando por id
+        tasks_sorted = sorted(tasks, key=lambda x: (x.get('tempo_exec', 0), x.get('id')))
         return self._assign_by_balanced_round(tasks_sorted, workers)
 
+    # ---------------------------
+    # PRIORIDADE (com desempate por ordem de chegada)
+    # ---------------------------
     def _priority(self, tasks, workers):
-        tasks_sorted = sorted(tasks, key=lambda x: x.get('prioridade', 3))
+        # prioridade menor = mais urgente → (1, depois 2, depois 3)
+        tasks_sorted = sorted(tasks, key=lambda x: (x.get('prioridade', 3), x.get('id')))
         return self._assign_by_balanced_round(tasks_sorted, workers)
 
+    # ---------------------------
+    # Balanceamento proporcional à capacidade dos servidores
+    # ---------------------------
     def _assign_by_balanced_round(self, tasks, workers):
-        # try to account for capacities: expand workers list proportionally
         pool = []
+
+        # Aumenta o "peso" de servidores mais potentes
         for w in workers:
             cap = max(1, int(w.get('capacidade', 1)))
             pool.extend([w] * cap)
-        # round-robin across expanded pool
+
         assigned = []
         it = itertools.cycle(pool)
+
         for t in tasks:
             assigned.append((next(it), t))
+
         return assigned

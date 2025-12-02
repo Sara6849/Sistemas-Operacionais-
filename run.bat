@@ -1,3 +1,3 @@
 @echo off
-python src/main.py input.json
+python main.py input.json
 pause

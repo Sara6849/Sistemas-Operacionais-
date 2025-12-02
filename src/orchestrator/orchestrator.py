@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import time
+import queue
 from src.orchestrator.scheduler import Scheduler
 from src.utils.logger import Logger
 from src.servers.worker import WorkerProcess
@@ -15,7 +16,7 @@ class Orchestrator:
         self.metrics = Metrics()
         self.manager = mp.Manager()
 
-        # shared structures
+        # shared structures (usamos Manager queues)
         self.task_queue = self.manager.Queue()
         self.result_queue = self.manager.Queue()
         self.control_queue = self.manager.Queue()
@@ -51,39 +52,72 @@ class Orchestrator:
             while self.running:
                 # ingest dynamic tasks if dynamic True (external producers could push into task_queue)
                 tasks_to_assign = []
-                while not self.task_queue.empty():
-                    tasks_to_assign.append(self.task_queue.get())
+                # use get_nowait to avoid relying on .empty()
+                while True:
+                    try:
+                        t = self.task_queue.get_nowait()
+                        tasks_to_assign.append(t)
+                    except queue.Empty:
+                        break
 
                 if tasks_to_assign:
                     assignments = self.scheduler.escalar(tasks_to_assign, self.workers)
                     for w_proxy, task in assignments:
-                        w_proxy['inbox'].put(task)
-                        self.logger.log(f"Requisição {task['id']} atribuída ao Servidor {w_proxy['id']}")
-                        self.metrics.registrar_desenvio(task['id'])
+                        # deliver task to worker inbox
+                        try:
+                            w_proxy['inbox'].put(task)
+                            self.logger.log(f"Requisição {task['id']} atribuída ao Servidor {w_proxy['id']}")
+                            self.metrics.registrar_desenvio(task['id'])
+                        except Exception:
+                            # se falhar por algum motivo, re-enfileira a task
+                            self.task_queue.put(task)
 
-                # collect results
-                while not self.result_queue.empty():
-                    res = self.result_queue.get()
-                    self.logger.log(f"Servidor {res['server']} concluiu tarefa {res['task_id']}")
-                    self.metrics.registrar_conclusao(res)
+                # collect results (non-blocking)
+                while True:
+                    try:
+                        res = self.result_queue.get_nowait()
+                        self.logger.log(f"Servidor {res['server']} concluiu tarefa {res['task_id']}")
+                        self.metrics.registrar_conclusao(res)
+                    except queue.Empty:
+                        break
 
                 # periodic balancing / migração: se algum servidor estiver muito carregado, migrar tarefas
                 self._balance_load()
 
                 time.sleep(0.2)
         except KeyboardInterrupt:
+            # permite ctrl+c parar
+            self.stop()
+        except Exception as e:
+            self.logger.log(f"Erro no loop do Orquestrador: {e}")
             self.stop()
 
     def stop(self):
         self.logger.log('Orquestrador finalizando...')
         self.running = False
-        # stop workers
+        # stop workers: enviar comando e aguardar join; usar terminate se necessário
         for w in self.workers:
-            w['inbox'].put({'_control': 'stop'})
+            try:
+                w['inbox'].put({'_control': 'stop'})
+            except Exception:
+                pass
+
+        # join com timeout e forçar término se ainda estiver vivo
         for w in self.workers:
-            w['process'].join(timeout=2)
+            p = w['process']
+            p.join(timeout=3)
+            if p.is_alive():
+                try:
+                    p.terminate()
+                    p.join(timeout=1)
+                except Exception:
+                    pass
+
         self.logger.log('Todos os workers finalizados')
-        self.metrics.summary()
+        try:
+            self.metrics.summary()
+        except Exception:
+            pass
 
     def _balance_load(self):
         # ask workers for status (non-blocking)
@@ -95,10 +129,13 @@ class Orchestrator:
             except Exception:
                 pass
 
-        # read responses from control_queue
-        while not self.control_queue.empty():
-            st = self.control_queue.get()
-            statuses.append(st)
+        # read responses from control_queue without using .empty()
+        while True:
+            try:
+                st = self.control_queue.get_nowait()
+                statuses.append(st)
+            except queue.Empty:
+                break
 
         if not statuses:
             return
@@ -112,18 +149,34 @@ class Orchestrator:
             src = overloaded[0]
             dst = underloaded[0]
             # request migration from source
-            src_proxy = next(w for w in self.workers if w['id'] == src['id'])
-            dst_proxy = next(w for w in self.workers if w['id'] == dst['id'])
+            src_proxy = next((w for w in self.workers if w['id'] == src['id']), None)
+            dst_proxy = next((w for w in self.workers if w['id'] == dst['id']), None)
+            if not src_proxy or not dst_proxy:
+                return
+
             # ask source to pop one queued task for migration
-            src_proxy['inbox'].put({'_control': 'migrate_request'})
-            time.sleep(0.05)
-            # read migration task from control_queue
-            while not self.control_queue.empty():
-                m = self.control_queue.get()
-                if m.get('migrate_task'):
-                    task = m['migrate_task']
+            try:
+                src_proxy['inbox'].put({'_control': 'migrate_request'})
+            except Exception:
+                return
+
+            # wait a short time for the worker to respond with a migrate_task
+            deadline = time.time() + 0.15
+            task = None
+            while time.time() < deadline:
+                try:
+                    m = self.control_queue.get_nowait()
+                    if m.get('migrate_task'):
+                        task = m['migrate_task']
+                        break
+                except queue.Empty:
+                    time.sleep(0.01)
+                    continue
+
+            if task:
+                try:
                     dst_proxy['inbox'].put(task)
                     self.logger.log(f"Tarefa {task['id']} migrada do Servidor {src['id']} para {dst['id']}")
-                    break
-
-
+                except Exception:
+                    # se nao conseguir colocar, re-enfileira para tentar depois
+                    self.task_queue.put(task)
